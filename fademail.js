@@ -14,18 +14,30 @@ function gatherOpts(program, callback){
   if (!program.user) {
     program.prompt("Username: ", function(username){
       program.user = username;
-      gatherOpts(program);
+      gatherOpts(program, callback);
     });
   }
   else if (!program.pass) {
     program.password("Password: ", '*', function(password){
       program.pass = password;
-      gatherOpts(program);
+      gatherOpts(program, callback);
     });
   }
   else {
+    process.stdin.destroy();
     callback(program);
   }
+}
+
+function columnize(s, width, padding){
+  s = s.toString();
+  if (s.length > width) {
+    s = s.slice(0, width-2) + '\u2026';
+  }
+  else {
+    s = s + new Array(width + 1 - s.length).join(' ');
+  }
+  return s + new Array(padding + 1).join(' ');
 }
 
 function run(opts) {
@@ -38,7 +50,7 @@ function run(opts) {
   });
 
   var next = 0;
-  var cmds;
+  var cmds, msgs = [];
   var doNext = function doNext(err) {
     if (err) {
       console.log('Error in command[' + next + ']: ' + err);
@@ -51,30 +63,40 @@ function run(opts) {
 
   cmds = [
     function() { imap.connect(doNext); },
+
     function() { imap.openBox('INBOX', true, doNext); },
+
     function(box) { 
-      console.log(box.messages.total + " messages in your inbox!");
-      imap.search([ 'ALL' ], doNext); 
+      var startDate = new Date() - (30 * 24 * 60 * 60 * 1000);
+      imap.search([ 'ALL', ['SINCE', startDate] ], doNext); 
     },
+
     function(ids) { 
+      console.log(ids.length + " messages!");
       var fetch = imap.fetch(ids, { request: { headers: ['from', 'to', 'subject', 'date'] } });
       fetch.on('message', function(msg) {
-        msg.on('data', function(chunk) {
-          console.log('Got message chunk of size ' + chunk.length);
-        });
         msg.on('end', function() {
-          var from = /"?(.+?)($|"|\s*<)/.exec(msg.headers.from[0])[1];
-          if (from.length > 30) {
-            from = from.slice(0, 28) + '\u2026';
+          msgs.push(msg);
+          var sent = new Date(msg.headers.date[0]);
+          var today = new Date();
+          var sign = -1;
+          if( msg.flags.indexOf('\\Flagged') != -1 ){
+            sign = 1;
           }
-          else {
-            from = from + new Array(30 - from.length).join(' ');
-          }
-          var subj = msg.headers.subject[0]; 
-          console.log(from + '    ' + subj);
+          msg.temperature = sign * (today - sent);
+          //console.log(util.inspect(msg, true, null, true));
         });
       });
       fetch.on('end', function() {
+        msgs.sort(function(a, b){
+          return b.temperature - a.temperature;
+        });
+        for(var i=0; i<msgs.length; i++){
+          var msg = msgs[i];
+          var from = /"?(.+?)($|"|\s*<)/.exec(msg.headers.from[0])[1];
+          var subj = msg.headers.subject[0]; 
+          console.log(columnize(msg.temperature, 15, 4) + columnize(from, 30, 4) + subj);
+        }
         imap.logout();
       });
     }
