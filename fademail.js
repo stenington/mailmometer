@@ -10,6 +10,7 @@ program
   .option('-u, --user [username]', 'Username (email address)')
   .option('-p, --pass [password]', 'Password')
   .option('-c, --color', 'Colorize output')
+  .option('-t, --temperature', 'List message temperature')
   .parse(process.argv);
 
 gatherOpts(program, run);
@@ -77,7 +78,10 @@ function run(opts) {
       var fetch = imap.fetch(ids, { request: { headers: ['from', 'to', 'subject', 'date'] } });
       fetch.on('message', function(msg) {
         msg.on('end', function() {
-          msgs.push(createMessage(msg, { color: program.color }));
+          msgs.push(createMessage(msg, { 
+              color: program.color,
+              showTemperature: program.temperature     
+          }));
           //console.log(util.inspect(msg, true, null, true));
         });
       });
@@ -117,7 +121,8 @@ function createMessage(msg, opts){
   };
 
   that.temperaturePercent = function(){ 
-    return Math.abs(this.temperature())/max; 
+    var d = Math.abs(this.temperature())/max; 
+    return Math.round(d * 10000)/100;
   };
 
   that.colorize = function(s){
@@ -140,9 +145,12 @@ function createMessage(msg, opts){
   }
 
   that.print = function(){
-    var line = columnize(this.temperaturePercent(), 15, 4) + columnize(this.from, 30, 4) + this.subject;
+    var line = columnize(this.from, 30, 4) + this.subject;
     if( options.color ){
       line = this.colorize(line);
+    }
+    if( options.showTemperature ){
+      line = columnize(this.temperaturePercent()*sign, 15, 4) + line;
     }
     console.log(line);
   };
