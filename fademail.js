@@ -32,7 +32,7 @@ function gatherOpts(program, callback){
 function columnize(s, width, padding){
   s = s.toString();
   if (s.length > width) {
-    s = s.slice(0, width-2) + '\u2026';
+    s = s.slice(0, width-1) + '\u2026';
   }
   else {
     s = s + new Array(width + 1 - s.length).join(' ');
@@ -49,8 +49,12 @@ function run(opts) {
     secure: true
   });
 
+  var now = new Date()
+  var startDate = now - (30 * 24 * 60 * 60 * 1000);
+  var maxTemp = now - startDate; 
   var next = 0;
   var cmds, msgs = [];
+  
   var doNext = function doNext(err) {
     if (err) {
       console.log('Error in command[' + next + ']: ' + err);
@@ -67,7 +71,6 @@ function run(opts) {
     function() { imap.openBox('INBOX', true, doNext); },
 
     function(box) { 
-      var startDate = new Date() - (30 * 24 * 60 * 60 * 1000);
       imap.search([ 'ALL', ['SINCE', startDate] ], doNext); 
     },
 
@@ -78,24 +81,25 @@ function run(opts) {
         msg.on('end', function() {
           msgs.push(msg);
           var sent = new Date(msg.headers.date[0]);
-          var today = new Date();
+          var now = new Date();
           var sign = -1;
           if( msg.flags.indexOf('\\Flagged') != -1 ){
             sign = 1;
           }
-          msg.temperature = sign * (today - sent);
+          msg.temperature = sign * (now - sent);
           //console.log(util.inspect(msg, true, null, true));
         });
       });
       fetch.on('end', function() {
         msgs.sort(function(a, b){
-          return b.temperature - a.temperature;
+          return a.temperature - b.temperature;
         });
         for(var i=0; i<msgs.length; i++){
           var msg = msgs[i];
           var from = /"?(.+?)($|"|\s*<)/.exec(msg.headers.from[0])[1];
           var subj = msg.headers.subject[0]; 
-          console.log(columnize(msg.temperature, 15, 4) + columnize(from, 30, 4) + subj);
+          var howExtreme = Math.abs(msg.temperature)/maxTemp;
+          console.log(columnize(howExtreme, 15, 4) + columnize(from, 30, 4) + subj);
         }
         imap.logout();
       });
