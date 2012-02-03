@@ -71,7 +71,7 @@ function run(opts) {
     function() { imap.openBox('INBOX', true, doNext); },
 
     function(box) { 
-      imap.search([ 'ALL', ['SINCE', startDate] ], doNext); 
+      imap.search([['OR', ['SINCE', startDate], ['FLAGGED'] ]], doNext); 
     },
 
     function(ids) { 
@@ -87,7 +87,7 @@ function run(opts) {
             sign = 1;
           }
           msg.temperature = sign * (now - sent);
-          //console.log(util.inspect(msg, true, null, true));
+          console.log(util.inspect(msg, true, null, true));
         });
       });
       fetch.on('end', function() {
