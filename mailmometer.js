@@ -10,8 +10,10 @@ program
   .option('-u, --user [username]', 'Username (email address)')
   .option('-p, --pass [password]', 'Password')
   .option('-c, --color', 'Colorize output')
-  .option('-t, --temperature', 'List message temperature')
-  .parse(process.argv);
+  .option('-d, --descending', 'Sort high to low temperature')
+  .option('-t, --temperature', 'List message temperature');
+
+program.parse(process.argv);
 
 gatherOpts(program, run);
 
@@ -93,7 +95,12 @@ function run(opts) {
     function() {
       console.log(msgs.length + " messages!");
       msgs.sort(function(a, b){
-        return a.temperature() - b.temperature();
+        if( program.descending ){
+          return b.temperature() - a.temperature();
+        }
+        else {
+          return a.temperature() - b.temperature();
+        }
       });
       msgs.forEach(function(msg){ msg.print(); });
     }
@@ -127,7 +134,7 @@ function createMessage(msg, opts){
 
   that.colorize = function(s){
     if( sign == 1 ){
-      if( this.temperaturePercent() >= 0.9 ){
+      if( this.temperaturePercent() >= 90 ){
         return color.bold.red(s);
       }
       else {
@@ -135,7 +142,7 @@ function createMessage(msg, opts){
       }
     }
     else if( sign == -1 ){
-      if( this.temperaturePercent() >= 0.9 ){
+      if( this.temperaturePercent() >= 90 ){
         return color.cyan(s);
       }
       else {
