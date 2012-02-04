@@ -66,7 +66,7 @@ function run(opts) {
     calls to doNext, which handles errors but passes further parameters 
     on to these cmds. */
   cmds = [
-    function() { imap.connect(doNext); },
+    function() {imap.connect(doNext); },
 
     function() { imap.openBox('INBOX', true, doNext); },
 
@@ -142,7 +142,7 @@ function createMessage(msg, opts){
         return color.blue(s);
       }
     }
-  }
+  };
 
   that.print = function(){
     var line = columnize(this.from, 30, 4) + this.subject;
