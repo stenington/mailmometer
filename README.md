@@ -38,9 +38,11 @@ From your Gmail inbox...
 # Usage
 
 Basic usage:
+
     $ ./mailmometer.js    (for interactive username and password prompting)
     $ ./mailmometer.js -u myemail@gmail.com -p mypass  
 
 Further help:
+
     $ ./mailmometer.js -h 
 
